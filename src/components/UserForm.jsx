@@ -112,11 +112,10 @@ const UserForm = ({ onClose, initialData }) => {
               <span className="text-danger">Name is required</span>
             )}
           </CCol>
-          <CCol md="2">
+          <CCol md="3">
             <Controller
               name="dob"
               control={control}
-              defaultValue=""
               render={({ field }) => <CFormInput {...field} type="date" />}
               rules={{ required: true }}
             />
@@ -126,7 +125,6 @@ const UserForm = ({ onClose, initialData }) => {
             <Controller
               name="country"
               control={control}
-              defaultValue=""
               render={({ field }) => (
                 <Select
                   {...field}
@@ -146,7 +144,6 @@ const UserForm = ({ onClose, initialData }) => {
             <Controller
               name="city"
               control={control}
-              defaultValue=""
               render={({ field }) => (
                 <Select
                   {...field}
