@@ -95,10 +95,10 @@ const UserForm = ({ onClose, initialData }) => {
   };
 
   return (
-    <CContainer>
+    <CContainer className="d-flex justify-content-center">
       <CForm onSubmit={handleSubmit(handleFormSubmit)}>
         <CRow>
-          <CCol md="2">
+          <CCol md="3">
             <Controller
               name="name"
               control={control}
@@ -122,7 +122,7 @@ const UserForm = ({ onClose, initialData }) => {
             />
             {errors.dob && <span className="text-danger">DoB is required</span>}
           </CCol>
-          <CCol md="2">
+          <CCol md="3">
             <Controller
               name="country"
               control={control}
@@ -142,7 +142,7 @@ const UserForm = ({ onClose, initialData }) => {
               <span className="text-danger">Country is required</span>
             )}
           </CCol>
-          <CCol md="2">
+          <CCol md="3">
             <Controller
               name="city"
               control={control}
@@ -162,19 +162,21 @@ const UserForm = ({ onClose, initialData }) => {
             )}
           </CCol>
           <CCol>
-            <CButton
-              type="button"
-              onClick={() => {
-                onClose();
-                setSelectedCountry(null);
-              }}
-              className="bg-secondary border-secondary me-2"
-            >
-              Cancel
-            </CButton>
-            <CButton type="submit" className="bg-primary">
-              Submit
-            </CButton>
+            <div className="d-flex justify-content-end mt-2">
+              <CButton
+                type="button"
+                onClick={() => {
+                  onClose();
+                  setSelectedCountry(null);
+                }}
+                className="bg-secondary border-secondary me-2"
+              >
+                Cancel
+              </CButton>
+              <CButton type="submit" className="bg-primary">
+                Submit
+              </CButton>
+            </div>
           </CCol>
         </CRow>
       </CForm>
