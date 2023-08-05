@@ -1,23 +1,36 @@
-import { useState, useContext } from "react";
-import { addDoc, collection, Timestamp } from "firebase/firestore";
-import { useForm, Controller } from "react-hook-form";
+import { useState, useContext, useEffect } from "react";
+import {
+  addDoc,
+  collection,
+  Timestamp,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
+import { useForm, Controller, set } from "react-hook-form";
 import Select from "react-select";
 import {
   CContainer,
   CForm,
-  CFormLabel,
-  CButton,
   CFormInput,
+  CButton,
+  CRow,
+  CCol,
 } from "@coreui/react";
 
 import { FBCtx } from "../Firebase/FBProvider";
+import { validateDOB, validateCity } from "../helpers/validation";
 
-const UserForm = () => {
+const UserForm = ({ onClose, initialData }) => {
   const { db } = useContext(FBCtx);
+  const [selectedCountry, setSelectedCountry] = useState(null);
+  const [error, setError] = useState(null);
+
   const {
     handleSubmit,
     control,
     formState: { errors },
+    setValue,
+    clearErrors,
   } = useForm();
 
   const countryOptions = [
@@ -36,26 +49,46 @@ const UserForm = () => {
     ],
   };
 
-  const [selectedCountry, setSelectedCountry] = useState(null);
+  useEffect(() => {
+    if (initialData) {
+      setValue("name", initialData.name);
+      setValue("dob", initialData.dob.toDate().toISOString().split("T")[0]);
+      setValue("city", { value: initialData.city, label: initialData.city });
+      setSelectedCountry({
+        value: initialData.country,
+        label: initialData.country,
+      });
+      setValue("country", initialData.country);
+    }
+  }, [initialData, setValue]);
 
   const handleCountryChange = (selectedOption) => {
     setSelectedCountry(selectedOption);
+    setValue("country", selectedOption.value);
+    clearErrors("country");
   };
 
   const handleFormSubmit = async (data) => {
-    data.country = selectedCountry.value;
+    setError(null);
+    data.country = selectedCountry ? selectedCountry.value : data.country;
     data.city = data.city.value;
-    console.log("data.dob", data.dob);
     data.dob = Timestamp.fromDate(new Date(data.dob));
 
-    const date = new Date(data.dob.seconds * 1000);
+    if (validateDOB(data.dob)) {
+      setError("DoB cannot be in the future");
+      return;
+    }
 
-    const result = date.toLocaleDateString();
-
-    console.log("result", result);
+    if (validateCity(cityOptions, data.country, data.city)) {
+      setError("Invalid city");
+      return;
+    }
 
     try {
-      await addDoc(collection(db, "Users"), data);
+      initialData
+        ? await updateDoc(doc(db, "Users", initialData.id), data)
+        : await addDoc(collection(db, "Users"), data);
+      onClose();
     } catch (error) {
       console.error("Error adding user: ", error);
     }
@@ -64,50 +97,32 @@ const UserForm = () => {
   return (
     <CContainer>
       <CForm onSubmit={handleSubmit(handleFormSubmit)}>
-        <div>
-          <CFormLabel htmlFor="name" col="md-2">
-            Name
-          </CFormLabel>
-          <div>
+        <CRow>
+          <CCol md="2">
             <Controller
               name="name"
               control={control}
               defaultValue=""
               render={({ field }) => (
-                <CFormInput
-                  {...field}
-                  type="text"
-                  id="name"
-                  placeholder="Enter name"
-                />
+                <CFormInput {...field} type="text" placeholder="Enter name" />
               )}
               rules={{ required: true }}
             />
-            {errors.name && <span>Name is required</span>}
-          </div>
-        </div>
-        <div>
-          <CFormLabel htmlFor="dob" col="md-2">
-            Date of Birth
-          </CFormLabel>
-          <div>
+            {errors.name && (
+              <span className="text-danger">Name is required</span>
+            )}
+          </CCol>
+          <CCol md="2">
             <Controller
               name="dob"
               control={control}
               defaultValue=""
-              render={({ field }) => (
-                <CFormInput {...field} type="date" id="dob" />
-              )}
+              render={({ field }) => <CFormInput {...field} type="date" />}
               rules={{ required: true }}
             />
-            {errors.dob && <span>Date of Birth is required</span>}
-          </div>
-        </div>
-        <div>
-          <CFormLabel htmlFor="country" col="md-2">
-            Country
-          </CFormLabel>
-          <div>
+            {errors.dob && <span className="text-danger">DoB is required</span>}
+          </CCol>
+          <CCol md="2">
             <Controller
               name="country"
               control={control}
@@ -115,21 +130,19 @@ const UserForm = () => {
               render={({ field }) => (
                 <Select
                   {...field}
-                  value={selectedCountry}
+                  value={selectedCountry || field.value}
                   options={countryOptions}
                   onChange={handleCountryChange}
-                  placeholder="Select a country"
+                  placeholder="Country"
                 />
               )}
+              rules={{ required: true }}
             />
-            {errors.country && <span>Country is required</span>}
-          </div>
-        </div>
-        <div>
-          <CFormLabel htmlFor="city" col="md-2">
-            City
-          </CFormLabel>
-          <div>
+            {errors.country && (
+              <span className="text-danger">Country is required</span>
+            )}
+          </CCol>
+          <CCol md="2">
             <Controller
               name="city"
               control={control}
@@ -138,21 +151,36 @@ const UserForm = () => {
                 <Select
                   {...field}
                   options={cityOptions[selectedCountry?.value] || []}
-                  placeholder="Select a city"
+                  placeholder="City"
                   isDisabled={!selectedCountry}
                 />
               )}
               rules={{ required: true }}
             />
-            {errors.city && <span>City is required</span>}
-          </div>
-        </div>
-        <div>
-          <div>
-            <CButton type="submit">Submit</CButton>
-          </div>
-        </div>
+            {errors.city && (
+              <span className="text-danger">City is required</span>
+            )}
+          </CCol>
+          <CCol>
+            <CButton
+              type="button"
+              onClick={() => {
+                onClose();
+                setSelectedCountry(null);
+              }}
+              className="bg-secondary border-secondary me-2"
+            >
+              Cancel
+            </CButton>
+            <CButton type="submit" className="bg-primary">
+              Submit
+            </CButton>
+          </CCol>
+        </CRow>
       </CForm>
+      {error && (
+        <p className="text-danger text-center text-uppercase">{error}</p>
+      )}
     </CContainer>
   );
 };

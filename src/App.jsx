@@ -4,7 +4,6 @@ import UserTable from "./components/UserTable";
 function App() {
   return (
     <>
-      <UserForm />
       <UserTable />
     </>
   );
